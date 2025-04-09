@@ -5,6 +5,7 @@ import sys
 from datetime import datetime
 from faster_whisper import WhisperModel
 import subprocess
+from myai import get_summary
 
 # Set up base directory
 BASE_DIR = os.path.dirname(os.path.abspath(__file__)) + "/../"
@@ -91,7 +92,7 @@ def do_srt(video_path):
             return
 
         # 4. 用 faster-whisper 將 temp.wav 轉為 test.srt
-        model = WhisperModel(model_size_or_path="large-v3", device="cuda", compute_type="float32")
+        model = WhisperModel("large-v3", device="cuda", compute_type="float32")
         segments, info = model.transcribe(temp_wav, beam_size=5, language="ja")
         
         logging.info(f"偵測到的語言：'{info.language}'，可信度：{info.language_probability:.2f}")
@@ -112,13 +113,80 @@ def do_srt(video_path):
             os.unlink(temp_srt)
         logging.info("清理完成")
 
+def do_summary(video_path):
+    logging.info(f"Processing summary for: {video_path}")
+    # 1. 檢查 srt file 是否存在
+    srt_path = os.path.splitext(video_path)[0] + ".srt"
+    if not os.path.exists(srt_path):
+        logging.info(f"找不到字幕檔，跳過摘要生成: {srt_path}")
+        return
+
+    # 2. 檢查 summary file 是否存在
+    summary_path = os.path.splitext(video_path)[0] + "_summary.txt"
+    if os.path.exists(summary_path):
+        logging.info(f"摘要檔已存在，跳過處理: {summary_path}")
+        return
+
+    try:
+        # 讀取 SRT 文件內容
+        with open(srt_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        # 3. 將內容分割成 64K 的區塊
+        MAX_BLOCK_SIZE = 64 * 1024  # 64KB
+        blocks = []
+        current_block = []
+        current_size = 0
+
+        for line in content.split('\n'):
+            # 若是 line 全部只有空白、數字、.:,->, 則跳過
+            line = line.strip()
+            if all(c in ' 0123456789.:,->-' for c in line):
+                continue
+
+            line_size = len(line.encode('utf-8'))
+            
+            if current_size + line_size > MAX_BLOCK_SIZE and current_block:
+                blocks.append('\n'.join(current_block))
+                current_block = [line]
+                current_size = line_size
+            else:
+                current_block.append(line)
+                current_size += line_size
+
+        if current_block:
+            blocks.append('\n'.join(current_block))
+
+        # 4. 對每個區塊調用 get_summary
+        summaries = []
+        for i, block in enumerate(blocks):
+            logging.info(f"處理區塊 {i+1}/{len(blocks)}")
+            summary = get_summary(block)
+            print(summary)
+            summaries.append(summary)
+
+        # 5. 合併摘要並儲存
+        final_summary = '\n\n'.join(summaries)
+        with open(summary_path, 'w', encoding='utf-8') as f:
+            f.write(final_summary)
+        
+        logging.info(f"摘要已儲存至: {summary_path}")
+
+    except Exception as e:
+        logging.error(f"生成摘要時發生錯誤: {e}")
+
 def main():
     logging.info(f"Base directory: {BASE_DIR}")
     mp4_files = glob.glob(os.path.join(BASE_DIR, "**/*.mp4"), recursive=True)
     for (i, file) in enumerate(mp4_files):
-        logging.info(f"Processing file {i+1}/{len(mp4_files)}: {file}")
-        do_srt(file)
-        logging.info(f"Finished processing file {i+1}/{len(mp4_files)}: {file}")
+        try:
+            logging.info(f"Processing file {i+1}/{len(mp4_files)}: {file}")
+            do_srt(file)
+            # do_summary(file)
+            logging.info(f"Finished processing file {i+1}/{len(mp4_files)}: {file}")
+        except Exception as e:
+            logging.error(f"處理檔案時發生錯誤: {file} - {e}")
+            continue  # 繼續處理下一個檔案
 
 if __name__ == "__main__":
     main()

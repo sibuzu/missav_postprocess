@@ -2,3 +2,4 @@ venv/
 log/
 git_diff
 .env
+__pycache__/

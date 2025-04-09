@@ -1,0 +1,25 @@
+<model>
+    <prompts>
+        <!--0-->
+        <prompt>
+元の文章を可能な限り維持しながら、段落や句読点を変更してください。
+</prompt>
+    </prompts>
+
+    <templates> 
+        <!--0-->
+        <template>
+===== 文章開始 =====
+{text}
+===== 文章結束 =====
+
+元の文章を可能な限り維持しながら、段落や句読点を変更してください。
+</template>
+    </templates>
+
+    <models>
+        <model>gemini-2.0-flash</model>
+        <model>gemma3:27b</model>
+        <model>deepseek-r1:32b</model>
+    </models>
+</model>

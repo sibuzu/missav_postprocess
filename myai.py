@@ -6,8 +6,8 @@ import logging
 import time
 import xml.etree.ElementTree as ET
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger('youtube_update')
+# 直接獲取 root logger
+logger = logging.getLogger()
 
 PROMPT_FILE = os.path.dirname(os.path.abspath(__file__)) + '/prompts.txt'
 def load_config(config_file=PROMPT_FILE):
@@ -41,7 +41,7 @@ def load_config(config_file=PROMPT_FILE):
 # Load configuration from prompts.txt
 prompts, templates, models = load_config()
 
-def get_summary(text, model_id="A", pidx=0):
+def get_summary(text, model_id="C", pidx=0):
     model_name = models[model_id]
     prompt = prompts[pidx]
     template = templates[pidx]
@@ -57,7 +57,7 @@ def get_summary(text, model_id="A", pidx=0):
         elapsed_time = time.time() - start_time
         logger.info(f"get_summary: Model {model_id}({model_name}) took {elapsed_time:.2f} seconds")
 
-        summary = summary.strip() + f"\n\n[model={model_name},{pidx}]\n";
+        # summary = summary.strip() + f"\n\n[model={model_name},{pidx}]\n"
         return summary
     except Exception as e:
         logger.error(f"get_summary: Error generating summary: {e}")

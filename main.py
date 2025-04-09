@@ -41,7 +41,8 @@ def extract_audio(video_path, audio_output_path):
     """使用 ffmpeg 從影片檔案中提取音訊"""
     try:
         subprocess.run(
-            ["ffmpeg", "-i", video_path, "-vn", "-acodec", "pcm_s16le", "-ar", "16000", "-ac", "1", audio_output_path],
+            ["ffmpeg", "-i", video_path, "-vn", "-acodec", "pcm_s16le", "-ar", "16000", 
+            "-ac", "1", audio_output_path],
             check=True,
             capture_output=True
         )
@@ -104,10 +105,12 @@ def do_srt(video_path):
         logging.error(f"處理檔案時發生錯誤: {e}")
     finally:
         # 清理臨時檔案
+        logging.info(f"清理臨時檔案: {temp_wav}, {temp_srt}")
         if os.path.exists(temp_wav):
             os.unlink(temp_wav)
         if os.path.exists(temp_srt):
             os.unlink(temp_srt)
+        logging.info("清理完成")
 
 def main():
     logging.info(f"Base directory: {BASE_DIR}")
@@ -115,6 +118,7 @@ def main():
     for (i, file) in enumerate(mp4_files):
         logging.info(f"Processing file {i+1}/{len(mp4_files)}: {file}")
         do_srt(file)
+        logging.info(f"Finished processing file {i+1}/{len(mp4_files)}: {file}")
 
 if __name__ == "__main__":
     main()
